@@ -1,3 +1,7 @@
+# HANDOFF: D2 owns this file from Phase 4. The integration fix at line 113-126
+# (directive_adapter.validate_python(d).model_dump()) was landed by D4 during
+# the PLAND3-5 recovery cycle; D2 takes the file here and is the only track
+# that may edit it from this point on. PLAND4 §4 Phase 3 gate.
 from __future__ import annotations
 
 import logging

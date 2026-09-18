@@ -24,10 +24,14 @@ python3 -m venv .venv
 # Install dev + runtime deps
 pip install -r requirements-dev.txt
 
-# Secrets
-cp .env.example .env
-# open .env in your editor and set:
-#   LLM_API_KEY=sk-...
+# Secrets — `.env.example` is git-ignored as a template; recreate it locally.
+cat > .env <<'EOF'
+LLM_PROVIDER=openai
+LLM_API_KEY=sk-...
+LLM_MODEL=gpt-4.1-mini
+PORT=8000
+EOF
+# open .env in your editor and replace sk-... with your real key.
 ```
 
 `.env` is git-ignored. Never paste a key into the repo, into a PR, or
