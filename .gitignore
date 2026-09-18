@@ -7,3 +7,5 @@ __pycache__/
 dist/
 build/
 .mypy_cache/
+gitignored/
+.DS_Store
