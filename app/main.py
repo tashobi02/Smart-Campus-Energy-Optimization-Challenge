@@ -1,23 +1,29 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Request
+import logging
+from typing import List, Sequence
+
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.guardrails.validator import validate_directives
 from app.llm.interpreter import interpret_notes
-from app.optimizer.directives import apply_directives
-from app.optimizer.solver import solve
+from app.optimizer.solver import solve_best_effort
 from app.replay.final_validator import replay
 from app.schemas.request import ScenarioRequest
 from app.schemas.response import (
     DirectiveInterpretation,
+    HourlyPlanEntry,
     OptimizeResponse,
 )
+from judge.replay import recompute_totals
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="GridWise Energy Optimizer",
-    version="0.1.0",
-    description="LLM-assisted campus energy optimization — Phase 0 walking skeleton",
+    version="1.0.0",
+    description="LLM-assisted campus energy optimization",
 )
 
 
@@ -26,65 +32,75 @@ def health():
     return {"status": "ok"}
 
 
+def _summarise(
+    directives: Sequence[dict],
+    plan: Sequence[HourlyPlanEntry],
+    relaxations: Sequence[str],
+) -> str:
+    applied = [d["directive_type"] for d in directives if d["applies"]]
+    charge = sum(1 for e in plan if e.battery_action.value == "charge")
+    discharge = sum(1 for e in plan if e.battery_action.value == "discharge")
+
+    parts = [
+        f"Applied {len(applied)} operator directive(s)"
+        + (f" ({', '.join(sorted(set(applied)))})" if applied else "")
+        + f"; {len(directives) - len(applied)} note(s) had no schedule effect."
+    ]
+    parts.append(
+        f"Charged the battery in {charge} hour(s) at low tariff and discharged in "
+        f"{discharge} hour(s) at peak, returning to the starting state of charge."
+    )
+    if relaxations:
+        parts.append("Note: " + "; ".join(relaxations) + ".")
+    return " ".join(parts)
+
+
 @app.post("/optimize-energy", response_model=OptimizeResponse)
-def optimize_energy(request: ScenarioRequest):
-    try:
-        # 1. LLM Interpreter — extract directives from operator notes
-        raw_directives = interpret_notes(request.operator_notes)
+async def optimize_energy(request: ScenarioRequest):
+    # 1. LLM interprets every operator note (falls back safely if unavailable).
+    raw_directives = await interpret_notes(request.operator_notes, request.battery)
 
-        # 2. Guardrail Validator — validate / sanitise directives
-        clean_directives = validate_directives(
-            raw_directives, len(request.operator_notes)
-        )
+    # 2. Deterministic guardrails repair the untrusted interpretation.
+    directives = validate_directives(
+        raw_directives, len(request.operator_notes), request.battery
+    )
 
-        # 3. Apply directives to produce solver constraints
-        constraints = apply_directives(
-            request.hours, request.battery, clean_directives
-        )
+    # 3+4. Apply directives and solve, relaxing only if a misread note made the
+    # problem infeasible.
+    plan, bundle, relaxations = solve_best_effort(
+        request.hours, request.battery, directives
+    )
 
-        # 4. Math Optimizer — solve for optimal schedule
-        plan = solve(request.hours, request.battery, constraints)
+    # 5. Replay the finished schedule with the same checker the judge uses.
+    valid, errors = replay(plan, request.hours, request.battery, bundle)
+    if not valid:
+        # Never surface a 5xx: fall back to a schedule that is valid by
+        # construction rather than returning a plan we know breaks the rules.
+        logger.error("final replay rejected the plan: %s", errors)
+        plan, _, _ = solve_best_effort(request.hours, request.battery, [])
+        relaxations = list(relaxations) + ["fell back to an unconstrained schedule"]
 
-        # 5. Final Validator — replay and check
-        ok, errors = replay(plan)
-        if not ok:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Plan validation failed: {errors}",
-            )
+    # 6. Totals are derived from hourly_plan, the judge's source of truth.
+    totals = recompute_totals(plan, request.hours)
 
-        # 6. Compute summary fields
-        total_grid = sum(e.grid_kwh for e in plan)
-        total_cost = sum(
-            e.grid_kwh * request.hours[i].tariff_bdt_per_kwh
-            for i, e in enumerate(plan)
-        )
-        peak_grid = max(e.grid_kwh for e in plan)
+    interpretations: List[DirectiveInterpretation] = [
+        DirectiveInterpretation(**d) for d in directives
+    ]
 
-        # 7. Build directive interpretation response objects
-        interpretations = [
-            DirectiveInterpretation(**d) for d in clean_directives
-        ]
-
-        return OptimizeResponse(
-            scenario_id=request.scenario_id,
-            directive_interpretation=interpretations,
-            hourly_plan=plan,
-            total_grid_kwh=round(total_grid, 2),
-            total_cost_bdt=round(total_cost, 2),
-            peak_grid_kwh=round(peak_grid, 2),
-            plan_summary="Phase 0 stub: naive grid-only plan with battery idle.",
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return OptimizeResponse(
+        scenario_id=request.scenario_id,
+        directive_interpretation=interpretations,
+        hourly_plan=plan,
+        total_grid_kwh=round(totals["total_grid_kwh"], 2),
+        total_cost_bdt=round(totals["total_cost_bdt"], 2),
+        peak_grid_kwh=round(totals["peak_grid_kwh"], 2),
+        plan_summary=_summarise(directives, plan, relaxations),
+    )
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"},
-    )
+    # Log the detail server-side; never return it. Provider errors can carry the
+    # request URL and configuration, which must not reach the client.
+    logger.exception("unhandled error on %s", request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})

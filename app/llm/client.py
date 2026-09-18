@@ -4,6 +4,7 @@ from app.config import LLM_API_KEY, LLM_MODEL, LLM_PROVIDER
 
 _PROVIDER_URLS = {
     "openrouter": "https://openrouter.ai/api/v1/chat/completions",
+    "openai": "https://api.openai.com/v1/chat/completions",
 }
 
 
