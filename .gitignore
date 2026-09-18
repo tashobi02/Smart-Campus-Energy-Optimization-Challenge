@@ -10,3 +10,4 @@ build/
 .claude/
 .DS_Store
 .puku/
+.env/
