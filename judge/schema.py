@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from judge import TOL
+from judge import within
 
 REQUIRED_TOP_FIELDS = (
     "scenario_id",
@@ -98,7 +98,7 @@ def check_schema(response: Any, request: dict[str, Any]) -> list[str]:
         value = response[field]
         if not is_number(value):
             errors.append(f"{field} is not a finite number: {value!r}")
-        elif value < -TOL:
+        elif value < 0 and not within(value):
             errors.append(f"{field} is negative: {value}")
 
     errors.extend(_check_plan_shape(response.get("hourly_plan")))
@@ -148,7 +148,7 @@ def _check_plan_shape(plan: Any) -> list[str]:
                 errors.append(
                     f"{where}: {field} is not a finite number: {value!r}"
                 )
-            elif value < -TOL:
+            elif value < 0 and not within(value):
                 errors.append(f"{where}: {field} is negative: {value}")
 
         action = entry.get("battery_action")
@@ -156,7 +156,7 @@ def _check_plan_shape(plan: Any) -> list[str]:
             errors.append(f"{where}: battery_action {action!r} not in enum")
         elif action == "idle":
             battery_kwh = entry.get("battery_kwh")
-            if is_number(battery_kwh) and abs(battery_kwh) > TOL:
+            if is_number(battery_kwh) and not within(battery_kwh):
                 errors.append(
                     f"{where}: battery_action is idle but "
                     f"battery_kwh is {battery_kwh}"

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from judge import TOL
+from judge import within
 
 # The numeric payload keys across all directive types. A key absent from both
 # sides is not a disagreement; a key present on only one side is.
@@ -103,7 +103,7 @@ def _numerics_match(predicted: Any, truth: Any) -> bool:
     for key in set(predicted_values) | set(truth_values):
         if key not in predicted_values or key not in truth_values:
             return False
-        if abs(predicted_values[key] - truth_values[key]) > TOL:
+        if not within(predicted_values[key], truth_values[key]):
             return False
     return True
 

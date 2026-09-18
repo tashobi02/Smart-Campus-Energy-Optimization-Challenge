@@ -94,8 +94,9 @@ def _print_summary(results: list[dict[str, Any]]) -> None:
     passed = sum(
         1 for result in results for ok in result["interpretation"].values() if ok
     )
+    # Matches aggregate(): optimization credit requires a valid plan.
     mean_quality = (
-        sum(result["quality_ratio"] for result in results) / len(results)
+        sum(r["quality_ratio"] for r in results if r["valid"]) / len(results)
         if results
         else 0.0
     )
@@ -106,7 +107,7 @@ def _print_summary(results: list[dict[str, Any]]) -> None:
     print(f"Application    {scores['application']:>6.2f} / 25   "
           f"({valid}/{len(results)} cases valid)")
     print(f"Optimization   {scores['optimization']:>6.2f} / 10   "
-          f"(mean quality_ratio {mean_quality:.4f})")
+          f"(mean quality_ratio {mean_quality:.4f} over valid cases)")
     print(f"Measured       {scores['total']:>6.2f} / 60   "
           "(API, performance, deployment and docs are not measurable here)")
 

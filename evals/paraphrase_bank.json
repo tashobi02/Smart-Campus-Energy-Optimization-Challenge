@@ -1,0 +1,257 @@
+{
+  "_meta": {
+    "title": "GridWise — paraphrase eval bank (PLAND2 3.6)",
+    "purpose": "Hidden judge cases will paraphrase the public notes. This bank is the only way to find out which conventions the prompt gets wrong before the judge does.",
+    "built_from": "tests/fixtures/public_cases.json — every public note, reworded 3-5 ways",
+    "battery_ref": "resolved against the named case's battery in tests/fixtures/public_cases.json; percentage reserves depend on capacity_kwh",
+    "truth_note": "note_index and explanation are omitted — judge.interpretation.compare_note does not read them",
+    "conventions": {
+      "clock_24h": "24-hour clock, e.g. 18:00",
+      "clock_ampm": "AM/PM, e.g. 6 PM",
+      "clock_words": "spelled out, e.g. from six until nine in the evening",
+      "clock_noon_midnight": "noon / midday / midnight instead of a number",
+      "window_between": "between X and Y",
+      "window_from_until": "from X until/through Y",
+      "window_during": "during the X-Y window / across the X and Y hours",
+      "window_starting": "for N hours starting at X",
+      "pct_remaining": "states the fraction that remains, e.g. drops to 20%",
+      "pct_reduction": "states the fraction lost, e.g. an 80% reduction",
+      "fraction_words": "worded fraction, e.g. one-fifth of normal output",
+      "reserve_absolute": "reserve given in kWh",
+      "reserve_percentage": "reserve given as a percentage of capacity",
+      "reserve_fraction": "reserve given as a worded fraction of capacity",
+      "cap_wording": "grid cap phrased as ceiling/limit rather than must not exceed",
+      "distractor": "carries no directive",
+      "operational_sounding": "distractor that uses operational vocabulary and numbers"
+    }
+  },
+  "entries": [
+    {"id": "PB-01", "source": "SAMPLE-01#0", "battery_ref": "SAMPLE-01", "conventions": ["clock_24h", "fraction_words"],
+     "note": "Panel washing runs 12:00 to 14:00; treat usable solar as one quarter of the forecast during that period.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [12, 13], "factor": 0.25}}},
+
+    {"id": "PB-02", "source": "SAMPLE-01#0", "battery_ref": "SAMPLE-01", "conventions": ["clock_noon_midnight", "window_between", "pct_remaining"],
+     "note": "Between noon and 2 PM the cleaning crew is on the roof, so solar output drops to 25% of forecast.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [12, 13], "factor": 0.25}}},
+
+    {"id": "PB-03", "source": "SAMPLE-01#0", "battery_ref": "SAMPLE-01", "conventions": ["clock_ampm", "pct_reduction"],
+     "note": "Expect a 75% reduction in usable solar from 12 PM through the 1 PM hour while the array is being washed.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [12, 13], "factor": 0.25}}},
+
+    {"id": "PB-04", "source": "SAMPLE-01#0", "battery_ref": "SAMPLE-01", "conventions": ["window_during", "clock_noon_midnight", "fraction_words"],
+     "note": "Rooftop cleaning during the noon and 1 PM hours will cost us about three quarters of forecast solar.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [12, 13], "factor": 0.25}}},
+
+    {"id": "PB-05", "source": "SAMPLE-06#0", "battery_ref": "SAMPLE-06", "conventions": ["clock_24h", "pct_remaining"],
+     "note": "Inspection cloud cover from 10:00 until 12:00 leaves roughly 50% of forecast solar.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [10, 11], "factor": 0.5}}},
+
+    {"id": "PB-06", "source": "SAMPLE-06#0", "battery_ref": "SAMPLE-06", "conventions": ["clock_words", "clock_noon_midnight", "fraction_words"],
+     "note": "From ten in the morning until midday, expect only half the usual solar yield during the panel inspection.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [10, 11], "factor": 0.5}}},
+
+    {"id": "PB-07", "source": "SAMPLE-06#0", "battery_ref": "SAMPLE-06", "conventions": ["window_between", "pct_reduction"],
+     "note": "A 50% reduction in solar output is expected between 10 AM and noon.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [10, 11], "factor": 0.5}}},
+
+    {"id": "PB-08", "source": "SAMPLE-06#0", "battery_ref": "SAMPLE-06", "conventions": ["window_during", "fraction_words"],
+     "note": "During the 10 AM and 11 AM hours, usable solar should be treated as one-half of the forecast.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [10, 11], "factor": 0.5}}},
+
+    {"id": "PB-09", "source": "SAMPLE-09#0", "battery_ref": "SAMPLE-09", "conventions": ["clock_ampm", "fraction_words"],
+     "note": "Inverter work will leave only one-fifth of normal rooftop output from 11 AM until 2 PM.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [11, 12, 13], "factor": 0.2}}},
+
+    {"id": "PB-10", "source": "SAMPLE-09#0", "battery_ref": "SAMPLE-09", "conventions": ["clock_24h", "pct_remaining"],
+     "note": "Solar drops to 20% of forecast during 11:00-14:00 for inverter maintenance.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [11, 12, 13], "factor": 0.2}}},
+
+    {"id": "PB-11", "source": "SAMPLE-09#0", "battery_ref": "SAMPLE-09", "conventions": ["clock_words", "pct_reduction"],
+     "note": "From eleven in the morning until two in the afternoon, expect an eighty percent reduction in rooftop solar.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [11, 12, 13], "factor": 0.2}}},
+
+    {"id": "PB-12", "source": "SAMPLE-09#0", "battery_ref": "SAMPLE-09", "conventions": ["window_during", "clock_noon_midnight", "fraction_words"],
+     "note": "Rooftop solar will be cut by four fifths across the 11 AM, noon and 1 PM hours because of inverter work.",
+     "truth": {"applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [11, 12, 13], "factor": 0.2}}},
+
+    {"id": "PB-13", "source": "SAMPLE-02#0", "battery_ref": "SAMPLE-02", "conventions": ["clock_24h", "window_from_until"],
+     "note": "Battery charging is unavailable from 02:00 until 05:00 for electrical maintenance.",
+     "truth": {"applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [2, 3, 4]}}},
+
+    {"id": "PB-14", "source": "SAMPLE-02#0", "battery_ref": "SAMPLE-02", "conventions": ["clock_words", "window_between"],
+     "note": "Do not charge the battery between two and five in the morning while the charger is isolated.",
+     "truth": {"applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [2, 3, 4]}}},
+
+    {"id": "PB-15", "source": "SAMPLE-02#0", "battery_ref": "SAMPLE-02", "conventions": ["window_during", "clock_ampm"],
+     "note": "During the 2 AM-5 AM maintenance window the charger is locked out.",
+     "truth": {"applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [2, 3, 4]}}},
+
+    {"id": "PB-16", "source": "SAMPLE-02#0", "battery_ref": "SAMPLE-02", "conventions": ["window_starting", "clock_ampm"],
+     "note": "Electricians will have the charging circuit open for three hours starting at 2 AM, so no charging in that period.",
+     "truth": {"applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [2, 3, 4]}}},
+
+    {"id": "PB-17", "source": "SAMPLE-06#1", "battery_ref": "SAMPLE-06", "conventions": ["clock_24h"],
+     "note": "The charging circuit is out of service from 14:00 to 16:00.",
+     "truth": {"applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [14, 15]}}},
+
+    {"id": "PB-18", "source": "SAMPLE-06#1", "battery_ref": "SAMPLE-06", "conventions": ["clock_words", "window_between"],
+     "note": "No battery charging between two and four in the afternoon.",
+     "truth": {"applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [14, 15]}}},
+
+    {"id": "PB-19", "source": "SAMPLE-06#1", "battery_ref": "SAMPLE-06", "conventions": ["window_from_until", "clock_ampm"],
+     "note": "Charging is suspended from 2 PM through the 3 PM hour.",
+     "truth": {"applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [14, 15]}}},
+
+    {"id": "PB-20", "source": "SAMPLE-08#0", "battery_ref": "SAMPLE-08", "conventions": ["clock_24h"],
+     "note": "Charging is disabled 11:00-13:00 while technicians inspect the charger.",
+     "truth": {"applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [11, 12]}}},
+
+    {"id": "PB-21", "source": "SAMPLE-08#0", "battery_ref": "SAMPLE-08", "conventions": ["clock_noon_midnight", "window_during"],
+     "note": "Do not charge during the 11 AM and noon hours.",
+     "truth": {"applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [11, 12]}}},
+
+    {"id": "PB-22", "source": "SAMPLE-08#0", "battery_ref": "SAMPLE-08", "conventions": ["clock_words", "window_from_until"],
+     "note": "Technicians are on the charger from eleven in the morning until one in the afternoon; keep it off charge.",
+     "truth": {"applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [11, 12]}}},
+
+    {"id": "PB-23", "source": "SAMPLE-03#0", "battery_ref": "SAMPLE-03", "conventions": ["clock_24h", "reserve_fraction"],
+     "note": "Hold at least half of the battery capacity from 18:00 until 21:00 for emergency operations.",
+     "truth": {"applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20], "minimum_energy_kwh": 100}}},
+
+    {"id": "PB-24", "source": "SAMPLE-03#0", "battery_ref": "SAMPLE-03", "conventions": ["window_between", "reserve_percentage"],
+     "note": "Battery state of charge must not fall below 50% of capacity between 6 PM and 9 PM.",
+     "truth": {"applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20], "minimum_energy_kwh": 100}}},
+
+    {"id": "PB-25", "source": "SAMPLE-03#0", "battery_ref": "SAMPLE-03", "conventions": ["clock_ampm", "reserve_absolute"],
+     "note": "Keep no less than 100 kWh in the battery from 6 PM until 9 PM.",
+     "truth": {"applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20], "minimum_energy_kwh": 100}}},
+
+    {"id": "PB-26", "source": "SAMPLE-03#0", "battery_ref": "SAMPLE-03", "conventions": ["clock_words", "reserve_fraction"],
+     "note": "From six in the evening until nine, maintain a reserve of one half the rated pack capacity.",
+     "truth": {"applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20], "minimum_energy_kwh": 100}}},
+
+    {"id": "PB-27", "source": "SAMPLE-07#0", "battery_ref": "SAMPLE-07", "conventions": ["clock_24h", "reserve_absolute"],
+     "note": "Maintain a minimum of 90 kWh in the battery from 18:00 to 22:00 for emergency services.",
+     "truth": {"applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20, 21], "minimum_energy_kwh": 90}}},
+
+    {"id": "PB-28", "source": "SAMPLE-07#0", "battery_ref": "SAMPLE-07", "conventions": ["clock_words", "window_between"],
+     "note": "Between six and ten in the evening the battery must never drop below 90 kWh.",
+     "truth": {"applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20, 21], "minimum_energy_kwh": 90}}},
+
+    {"id": "PB-29", "source": "SAMPLE-07#0", "battery_ref": "SAMPLE-07", "conventions": ["window_during", "reserve_absolute"],
+     "note": "Emergency services need a 90 kWh floor on stored energy during the 6 PM to 10 PM window.",
+     "truth": {"applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20, 21], "minimum_energy_kwh": 90}}},
+
+    {"id": "PB-30", "source": "SAMPLE-10#0", "battery_ref": "SAMPLE-10", "conventions": ["clock_24h", "reserve_absolute"],
+     "note": "The data centre needs at least 80 kWh retained from 18:00 until 22:00.",
+     "truth": {"applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20, 21], "minimum_energy_kwh": 80}}},
+
+    {"id": "PB-31", "source": "SAMPLE-10#0", "battery_ref": "SAMPLE-10", "conventions": ["window_between", "reserve_absolute"],
+     "note": "Battery charge must not go below 80 kWh between 6 PM and 10 PM.",
+     "truth": {"applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20, 21], "minimum_energy_kwh": 80}}},
+
+    {"id": "PB-32", "source": "SAMPLE-10#0", "battery_ref": "SAMPLE-10", "conventions": ["clock_words", "window_from_until"],
+     "note": "From six in the evening through the nine oclock hour, keep a reserve of eighty kilowatt-hours for the data centre.",
+     "truth": {"applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20, 21], "minimum_energy_kwh": 80}}},
+
+    {"id": "PB-33", "source": "SAMPLE-04#0", "battery_ref": "SAMPLE-04", "conventions": ["clock_24h", "window_from_until"],
+     "note": "The battery must not discharge from 18:00 until 20:00 during protection testing.",
+     "truth": {"applies": true, "directive_type": "no_discharge_window", "structured_adjustment": {"hours": [18, 19]}}},
+
+    {"id": "PB-34", "source": "SAMPLE-04#0", "battery_ref": "SAMPLE-04", "conventions": ["clock_words", "window_between"],
+     "note": "Do not draw from the battery between six and eight in the evening.",
+     "truth": {"applies": true, "directive_type": "no_discharge_window", "structured_adjustment": {"hours": [18, 19]}}},
+
+    {"id": "PB-35", "source": "SAMPLE-04#0", "battery_ref": "SAMPLE-04", "conventions": ["window_during", "clock_ampm"],
+     "note": "Protection testing runs across the 6 PM and 7 PM hours; the battery must hold its charge.",
+     "truth": {"applies": true, "directive_type": "no_discharge_window", "structured_adjustment": {"hours": [18, 19]}}},
+
+    {"id": "PB-36", "source": "SAMPLE-08#1", "battery_ref": "SAMPLE-08", "conventions": ["clock_24h"],
+     "note": "No battery discharge 17:00-19:00 during relay testing.",
+     "truth": {"applies": true, "directive_type": "no_discharge_window", "structured_adjustment": {"hours": [17, 18]}}},
+
+    {"id": "PB-37", "source": "SAMPLE-08#1", "battery_ref": "SAMPLE-08", "conventions": ["clock_words", "window_between"],
+     "note": "Between five and seven in the evening the battery should not be discharged.",
+     "truth": {"applies": true, "directive_type": "no_discharge_window", "structured_adjustment": {"hours": [17, 18]}}},
+
+    {"id": "PB-38", "source": "SAMPLE-08#1", "battery_ref": "SAMPLE-08", "conventions": ["window_from_until", "clock_ampm"],
+     "note": "During relay testing from 5 PM until 7 PM, meet demand without discharging the battery.",
+     "truth": {"applies": true, "directive_type": "no_discharge_window", "structured_adjustment": {"hours": [17, 18]}}},
+
+    {"id": "PB-39", "source": "SAMPLE-05#0", "battery_ref": "SAMPLE-05", "conventions": ["clock_24h", "cap_wording"],
+     "note": "Grid import is capped at 155 kWh per hour from 18:00 until 21:00 while the feeder is derated.",
+     "truth": {"applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [18, 19, 20], "max_grid_kwh": 155}}},
+
+    {"id": "PB-40", "source": "SAMPLE-05#0", "battery_ref": "SAMPLE-05", "conventions": ["clock_words", "window_between"],
+     "note": "Between six and nine in the evening, do not pull more than 155 kWh from the grid in any single hour.",
+     "truth": {"applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [18, 19, 20], "max_grid_kwh": 155}}},
+
+    {"id": "PB-41", "source": "SAMPLE-05#0", "battery_ref": "SAMPLE-05", "conventions": ["window_during", "cap_wording"],
+     "note": "A temporary feeder ceiling of 155 kWh per hour applies across the 6 PM, 7 PM and 8 PM hours.",
+     "truth": {"applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [18, 19, 20], "max_grid_kwh": 155}}},
+
+    {"id": "PB-42", "source": "SAMPLE-07#1", "battery_ref": "SAMPLE-07", "conventions": ["clock_24h", "cap_wording"],
+     "note": "Transformer limit: 180 kWh of grid import per hour, 19:00 to 21:00.",
+     "truth": {"applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [19, 20], "max_grid_kwh": 180}}},
+
+    {"id": "PB-43", "source": "SAMPLE-07#1", "battery_ref": "SAMPLE-07", "conventions": ["clock_words", "window_from_until"],
+     "note": "From seven until nine in the evening, grid intake must stay at or below 180 kWh each hour.",
+     "truth": {"applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [19, 20], "max_grid_kwh": 180}}},
+
+    {"id": "PB-44", "source": "SAMPLE-07#1", "battery_ref": "SAMPLE-07", "conventions": ["window_between", "cap_wording"],
+     "note": "The evening transformer allows no more than 180 kWh per hour between 7 PM and 9 PM.",
+     "truth": {"applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [19, 20], "max_grid_kwh": 180}}},
+
+    {"id": "PB-45", "source": "SAMPLE-10#1", "battery_ref": "SAMPLE-10", "conventions": ["clock_24h", "cap_wording"],
+     "note": "While the substation is constrained, cap grid draw at 190 kWh per hour from 19:00 until 22:00.",
+     "truth": {"applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [19, 20, 21], "max_grid_kwh": 190}}},
+
+    {"id": "PB-46", "source": "SAMPLE-10#1", "battery_ref": "SAMPLE-10", "conventions": ["clock_words", "window_between"],
+     "note": "Between seven and ten in the evening, grid intake must not exceed 190 kWh in any hour.",
+     "truth": {"applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [19, 20, 21], "max_grid_kwh": 190}}},
+
+    {"id": "PB-47", "source": "SAMPLE-10#1", "battery_ref": "SAMPLE-10", "conventions": ["window_during", "cap_wording"],
+     "note": "A 190 kWh hourly ceiling on grid import applies across the 7 PM, 8 PM and 9 PM hours.",
+     "truth": {"applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [19, 20, 21], "max_grid_kwh": 190}}},
+
+    {"id": "PB-48", "source": "SAMPLE-01#1", "battery_ref": "SAMPLE-01", "conventions": ["distractor"],
+     "note": "The sports office has pushed next month registration deadline back by a week.",
+     "truth": {"applies": false, "directive_type": "no_op", "structured_adjustment": null}},
+
+    {"id": "PB-49", "source": "SAMPLE-06#2", "battery_ref": "SAMPLE-06", "conventions": ["distractor"],
+     "note": "The library will extend book-return hours starting next week.",
+     "truth": {"applies": false, "directive_type": "no_op", "structured_adjustment": null}},
+
+    {"id": "PB-50", "source": "SAMPLE-09#1", "battery_ref": "SAMPLE-09", "conventions": ["distractor"],
+     "note": "Student affairs publishes the club notice board tomorrow morning.",
+     "truth": {"applies": false, "directive_type": "no_op", "structured_adjustment": null}},
+
+    {"id": "PB-51", "source": "SAMPLE-10#2", "battery_ref": "SAMPLE-10", "conventions": ["distractor"],
+     "note": "A seminar room booking has been moved to next week.",
+     "truth": {"applies": false, "directive_type": "no_op", "structured_adjustment": null}},
+
+    {"id": "PB-52", "source": "fresh", "battery_ref": "SAMPLE-01", "conventions": ["distractor", "operational_sounding"],
+     "note": "The solar array was washed last month and output has been normal since.",
+     "truth": {"applies": false, "directive_type": "no_op", "structured_adjustment": null}},
+
+    {"id": "PB-53", "source": "fresh", "battery_ref": "SAMPLE-02", "conventions": ["distractor", "operational_sounding"],
+     "note": "Battery maintenance is scheduled for the first weekend of next month.",
+     "truth": {"applies": false, "directive_type": "no_op", "structured_adjustment": null}},
+
+    {"id": "PB-54", "source": "fresh", "battery_ref": "SAMPLE-05", "conventions": ["distractor", "operational_sounding"],
+     "note": "Please note the grid tariff schedule published by the utility is already reflected in the hourly data.",
+     "truth": {"applies": false, "directive_type": "no_op", "structured_adjustment": null}},
+
+    {"id": "PB-55", "source": "fresh", "battery_ref": "SAMPLE-10", "conventions": ["distractor", "operational_sounding"],
+     "note": "Last week the evening peak reached 210 kWh of grid import, which was within limits.",
+     "truth": {"applies": false, "directive_type": "no_op", "structured_adjustment": null}},
+
+    {"id": "PB-56", "source": "fresh", "battery_ref": "SAMPLE-07", "conventions": ["distractor", "operational_sounding"],
+     "note": "The generator test planned for 3 PM has been cancelled.",
+     "truth": {"applies": false, "directive_type": "no_op", "structured_adjustment": null}},
+
+    {"id": "PB-57", "source": "fresh", "battery_ref": "SAMPLE-03", "conventions": ["distractor", "operational_sounding"],
+     "note": "Campus will run on its normal schedule today with no operational restrictions.",
+     "truth": {"applies": false, "directive_type": "no_op", "structured_adjustment": null}}
+  ]
+}

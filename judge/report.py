@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from judge import TOL
+from judge import within
 from judge.interpretation import DIMENSIONS, score_interpretation
 from judge.schema import check_schema, is_number
 
@@ -117,7 +117,7 @@ def check_totals(
         reported = response.get(field)
         if not is_number(reported):
             continue  # already reported by check_schema
-        if abs(float(reported) - expected) > TOL:
+        if not within(float(reported), expected):
             errors.append(
                 f"{field} reported as {reported} but hourly_plan gives "
                 f"{expected:.2f}"
@@ -145,7 +145,8 @@ def score_case(
 
     plan = response.get("hourly_plan") if isinstance(response, dict) else None
     team_cost = 0.0
-    if isinstance(plan, list) and not _has_fatal_plan_error(errors):
+    scoreable = _is_scoreable(plan)
+    if scoreable:
         recomputed = recompute_totals(plan, request["hours"])
         team_cost = recomputed["total_cost_bdt"]
         errors.extend(check_totals(response, recomputed))
@@ -164,7 +165,9 @@ def score_case(
         "interpretation": interpretation,
         "team_cost": round(team_cost, 2),
         "optimal_cost": round(optimal_cost, 2),
-        "quality_ratio": _quality_ratio(optimal_cost, team_cost),
+        "quality_ratio": (
+            _quality_ratio(optimal_cost, team_cost) if scoreable else 0.0
+        ),
     }
 
 
@@ -190,7 +193,12 @@ def aggregate(results: list[dict[str, Any]]) -> dict[str, float]:
         if ok
     )
     valid = sum(1 for result in results if result["valid"])
-    quality = sum(result["quality_ratio"] for result in results)
+    # Optimization credit requires a valid plan. A schedule that ignores a
+    # constraint is cheaper than one that respects it, so crediting quality
+    # on an invalid plan rewards exactly the wrong thing.
+    quality = sum(
+        result["quality_ratio"] for result in results if result["valid"]
+    )
 
     scores = {
         "interpretation": 25.0 * passed / checks,
@@ -202,17 +210,30 @@ def aggregate(results: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def _quality_ratio(optimal_cost: float, team_cost: float) -> float:
+    """Only ever called for a plan that was actually costed.
+
+    A zero-cost plan really is unbeatable, so it earns 1.0. A plan that could
+    not be costed at all earns 0.0 and is handled by the caller -- routing it
+    through here would hand a missing or shredded plan full optimization
+    credit, which is the "too loose" failure the whole harness exists to
+    prevent.
+    """
     if team_cost <= 0:
         return 1.0
     return round(min(1.0, optimal_cost / team_cost), 4)
 
 
-def _has_fatal_plan_error(errors: list[str]) -> bool:
-    """True when hourly_plan is too broken to replay against."""
-    return any(
-        "hourly_plan has" in error
-        or "hourly_plan is missing hours" in error
-        or "hourly_plan is " in error
-        or "duplicate entry" in error
-        for error in errors
-    )
+def _is_scoreable(plan: Any) -> bool:
+    """True when hourly_plan is intact enough to cost and replay.
+
+    Structural, not a scan of the error strings: an error message is for a
+    human, and matching on its wording breaks the moment it is reworded.
+    """
+    if not isinstance(plan, list) or len(plan) != 24:
+        return False
+    entries = [entry for entry in plan if isinstance(entry, dict)]
+    if len(entries) != 24:
+        return False
+    if {entry.get("hour") for entry in entries} != set(range(24)):
+        return False
+    return all(is_number(entry.get("grid_kwh")) for entry in entries)

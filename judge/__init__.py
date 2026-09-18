@@ -10,3 +10,14 @@ Run it:  python -m judge tests/fixtures/public_cases.json
 # Absolute tolerance for every numeric comparison in the harness.
 # The public case pack's constraint_reminders fix this at 0.01 kWh / 0.01 BDT.
 TOL = 0.01
+
+# Binary floating point puts 38365.01 - 38365.0 at 0.010000000002, a hair
+# above TOL. Comparing with a bare `> TOL` therefore rejects a difference the
+# spec calls equivalent. A harness stricter than the judge is worse than no
+# harness: it sends the team chasing failures that do not exist.
+_EPSILON = 1e-9
+
+
+def within(value: float, other: float = 0.0) -> bool:
+    """True when two numbers agree inside the spec's 0.01 absolute tolerance."""
+    return abs(value - other) <= TOL + _EPSILON
