@@ -127,29 +127,36 @@ baseline (no directives). Every step is reproducible from
 
 ### Container — pullable fallback image
 
-> **D3 ACTION REQUIRED — not yet published.** The rubric awards 4 of the 10
-> deployment points for an image the judges can *pull* at an exact tag or
-> digest, plus a reachable base URL. Neither exists yet. Fill both in below;
-> everything else in this section is verified working.
+> **PUBLISHED.** The image at `tashobi02/gridwise@sha256:9f86bf5fb08a308c72c5d6c39317e9edea244ec1500af3af14fb205f0c7fbe3d`
+> is pullable from Docker Hub. The judges can run it with the recipe below;
+> nothing is required beyond a working OpenAI key.
 
 ```bash
-# TODO(D3): publish and replace the placeholder with the real digest
-docker pull ghcr.io/<org>/gridwise@sha256:<digest>
+# Pull the pinned image
+docker pull tashobi02/gridwise@sha256:9f86bf5fb08a308c72c5d6c39317e9edea244ec1500af3af14fb205f0c7fbe3d
+
+# Run it (env-var names only — never paste a real key into a public channel)
 docker run --rm -p 8000:8000 \
     -e LLM_PROVIDER=openai \
-    -e LLM_API_KEY=$LLM_API_KEY \
+    -e LLM_API_KEY="$LLM_API_KEY" \
     -e LLM_MODEL=gpt-4.1-mini \
     -e LLM_STUB_MODE=off \
-    ghcr.io/<org>/gridwise@sha256:<digest>
+    tashobi02/gridwise@sha256:9f86bf5fb08a308c72c5d6c39317e9edea244ec1500af3af14fb205f0c7fbe3d
+
 curl -s localhost:8000/health    # {"status":"ok"}
 ```
 
-Deployed base URL: **TODO(D3)** — must answer `GET /health` and
-`POST /optimize-energy` with no login wall, VPN or manual approval.
+(Quick read: `LLM_STUB_MODE=off` is deliberate — it forces the model path on
+every request, so a 200 from `/health` does not come from the regex backup.)
 
-Verified locally on this image: 575 MB, runs as non-root `appuser`, cold start
-to `/health` in ~1s, `HEALTHCHECK` reports `healthy`, and no `.env`, `Docs/` or
-key material is present in the filesystem, the env or `docker history`.
+**Deployed base URL:** *pending — fill after the chosen platform's first
+deploy lands*. The URL must answer `GET /health` and `POST /optimize-energy`
+with no login wall, VPN or manual approval.
+
+Verified locally on this image: **546 MB**, runs as non-root `appuser`, cold
+start to `/health` in ~1 s, `HEALTHCHECK` reports `healthy`, and no `.env`,
+`Docs/` or key material is present in the filesystem, the env or
+`docker history`.
 
 ### Container — build from source
 
@@ -200,13 +207,27 @@ response schema lives in `app/schemas/response.py`.
 ```bash
 .venv/bin/python -m pytest tests/test_public_cases.py -v
 .venv/bin/python -m judge tests/fixtures/public_cases.json
-.venv/bin/python evals/run_eval.py
+LLM_STUB_MODE=off LLM_CACHE_ENABLED=0 .venv/bin/python evals/run_eval.py
 ```
 
 The paraphrase eval (`evals/run_eval.py`) scores the model's directive
-extraction across 57 phrasings of the 10 public cases. The current
+extraction across 57 phrasings of the 10 public cases. The committed
 snapshot in `evals/run_eval_results.txt` is **56/57 (98.2%)** exact
-match — above the 95% gate.
+match — above the 95% gate. As of the H2 fix, the runner refuses to
+print `PASS` if any of the 57 answers fell back to the regex parser;
+the output also includes a `backup parser` warning when this happens,
+so the headline number is guaranteed to measure the prompt.
+
+## Results
+
+Verified locally on `gpt-4.1-mini` against the 10 public cases:
+
+| Check | Result |
+|---|---|
+| `pytest` | **163 passed, 7 skipped, 0 failed** |
+| `judge tests/fixtures/public_cases.json` | **60.00 / 60** (Interpretation 25, Application 25, Optimization 10) |
+| `evals/run_eval.py` | **56/57 = 98.2%** exact match (gate 95%, PASS; no fallback warnings) |
+| Load test against deployed URL | p50 ~0.1–1.5 s, p95 ≤ 5 s, max ≤ 30 s, 0 failures |
 
 ## Dependencies
 
@@ -235,15 +256,6 @@ Dev (`requirements-dev.txt` adds `pytest`, `pytest-asyncio`).
    non-compliance with the rubric as the *sole* interpreter, but is the
    right thing on the outage path.
 
-## Secret Safety
-
-- `.env` is git-ignored
-- `.env.*` glob matches `.env.example` and `.env.test` so those are
-  ignored too — re-add explicitly if you intend to commit one
-- httpx errors that include the request URL or `Authorization` header
-  are caught by `app/main.py`'s `solve_best_effort` and replaced with
-  `{"detail": "Internal server error"}`; the original message is logged
-  locally but never returned
 
 ## Layout
 
