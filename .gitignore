@@ -7,3 +7,8 @@ __pycache__/
 dist/
 build/
 .mypy_cache/
+.claude/
+.DS_Store
+.puku/
+.env/
+gitignored/
