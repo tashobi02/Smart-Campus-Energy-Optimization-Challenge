@@ -1,0 +1,21 @@
+.env
+.env.*
+.git
+.gitignore
+.dockerignore
+.venv
+venv/
+Docs/
+gitignored/
+scratch/
+# Workspace metadata folders — must NOT ship in the image
+.claude/
+.codex/
+.puku/
+.puku-cli/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+requirements-dev.txt

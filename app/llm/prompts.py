@@ -139,16 +139,24 @@ Output:
 
 
 # JSON-schema form of the same contract, for providers that support structured output.
+# OpenAI's strict mode requires `additionalProperties: false` on every object,
+# otherwise the provider rejects the schema outright. App/llm/client always sends
+# strict=True, so we add the required field here.
+# OpenAI's strict mode walks this dict directly. It rejects anything that
+# isn't a valid JSON Schema. The `name` and `strict` keys belong in the
+# outer `json_schema` envelope that app.llm.client constructs around this
+# object — not here. The earlier version had them at the wrong level, so
+# OpenAI saw `{name, strict, schema: {...}}` and complained "must have a
+# 'type' key" — the actual schema was nested one level too deep.
 RESPONSE_JSON_SCHEMA: Dict[str, Any] = {
-    "name": "directive_interpretation",
-    "strict": False,
-    "schema": {
-        "type": "object",
-        "properties": {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
             "directive_interpretation": {
                 "type": "array",
                 "items": {
                     "type": "object",
+                    "additionalProperties": False,
                     "properties": {
                         "note_index": {"type": "integer", "minimum": 0},
                         "applies": {"type": "boolean"},
@@ -163,7 +171,25 @@ RESPONSE_JSON_SCHEMA: Dict[str, Any] = {
                                 "no_op",
                             ],
                         },
-                        "structured_adjustment": {"type": ["object", "null"]},
+                        "structured_adjustment": {
+                            "type": ["object", "null"],
+                            "additionalProperties": False,
+                            "required": [
+                                "hours",
+                                "factor",
+                                "minimum_energy_kwh",
+                                "max_grid_kwh",
+                            ],
+                            "properties": {
+                                "hours": {
+                                    "type": ["array", "null"],
+                                    "items": {"type": "integer", "minimum": 0, "maximum": 23},
+                                },
+                                "factor": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+                                "minimum_energy_kwh": {"type": ["number", "null"], "minimum": 0},
+                                "max_grid_kwh": {"type": ["number", "null"], "minimum": 0},
+                            },
+                        },
                         "explanation": {"type": "string"},
                     },
                     "required": [
@@ -177,7 +203,6 @@ RESPONSE_JSON_SCHEMA: Dict[str, Any] = {
             }
         },
         "required": ["directive_interpretation"],
-    },
 }
 
 

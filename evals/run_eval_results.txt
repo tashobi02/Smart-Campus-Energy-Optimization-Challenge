@@ -1,0 +1,98 @@
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+model call failed: model=gpt-4.1-mini error=RuntimeError
+Scoring 57 paraphrases through app.llm.interpreter
+
+MISS PB-08  solar_reduction         window_during,fraction_words
+       note      During the 10 AM and 11 AM hours, usable solar should be treated as one-half of the forecast.
+       failed    hours
+       expected  solar_reduction {'hours': [10, 11], 'factor': 0.5}
+       got       solar_reduction {'hours': [10], 'factor': 0.5, 'minimum_energy_kwh': None, 'max_grid_kwh': None}
+
+Exact match  56/57  98.2%   (gate 95%)  PASS
+
+By convention:
+  fraction_words             5/6    83.3%   <- weakest
+  window_during              8/9    88.9%
+  cap_wording                6/6   100.0%
+  clock_24h                 14/14  100.0%
+  clock_ampm                 8/8   100.0%
+  clock_noon_midnight        5/5   100.0%
+  clock_words               13/13  100.0%
+  distractor                10/10  100.0%
+  operational_sounding       6/6   100.0%
+  pct_reduction              3/3   100.0%
+  pct_remaining              3/3   100.0%
+  reserve_absolute           5/5   100.0%
+  reserve_fraction           2/2   100.0%
+  reserve_percentage         1/1   100.0%
+  window_between            12/12  100.0%
+  window_from_until          7/7   100.0%
+  window_starting            1/1   100.0%
+
+By directive type:
+  solar_reduction           11/12   91.7%   <- weakest
+  max_grid_window            9/9   100.0%
+  minimum_battery_reserve   10/10  100.0%
+  no_charge_window          10/10  100.0%
+  no_discharge_window        6/6   100.0%
+  no_op                     10/10  100.0%
+
+By dimension:
+  applies                   57/57  100.0%
+  type                      57/57  100.0%
+  hours                     56/57   98.2%
+  numeric                   57/57  100.0%
