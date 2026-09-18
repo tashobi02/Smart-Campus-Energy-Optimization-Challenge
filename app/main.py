@@ -56,9 +56,16 @@ def health():
 def _summarise(
     directives: Sequence[dict],
     plan: Sequence[HourlyPlanEntry],
-    relaxations: Sequence[str],
+    relaxations: Sequence[dict],
 ) -> str:
-    applied = [d["directive_type"] for d in directives if d["applies"]]
+    # A directive that was relaxed away is not an applied directive; counting it
+    # as one made the summary contradict its own closing sentence.
+    relaxed = {r.get("note_index") for r in relaxations}
+    applied = [
+        d["directive_type"]
+        for d in directives
+        if d["applies"] and d["note_index"] not in relaxed
+    ]
     charge = sum(1 for e in plan if e.battery_action.value == "charge")
     discharge = sum(1 for e in plan if e.battery_action.value == "discharge")
 
@@ -72,7 +79,9 @@ def _summarise(
         f"{discharge} hour(s) at peak, returning to the starting state of charge."
     )
     if relaxations:
-        parts.append("Note: " + "; ".join(relaxations) + ".")
+        parts.append(
+            "Note: " + "; ".join(r["reason"] for r in relaxations) + "."
+        )
     return " ".join(parts)
 
 
@@ -107,7 +116,9 @@ async def optimize_energy(request: ScenarioRequest):
             # construction rather than returning a plan we know breaks the rules.
             logger.error("final replay rejected the plan: %s", errors)
             plan, _, _ = solve_best_effort(request.hours, request.battery, [])
-            relaxations = list(relaxations) + ["fell back to an unconstrained schedule"]
+            relaxations = list(relaxations) + [
+                {"note_index": None, "reason": "fell back to an unconstrained schedule"}
+            ]
 
         # 6. Totals are derived from hourly_plan, the judge's source of truth.
         totals = recompute_totals(plan, request.hours)

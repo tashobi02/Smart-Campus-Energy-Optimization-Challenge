@@ -108,6 +108,14 @@ def _print_summary(results: list[dict[str, Any]]) -> None:
           f"({valid}/{len(results)} cases valid)")
     print(f"Optimization   {scores['optimization']:>6.2f} / 10   "
           f"(mean quality_ratio {mean_quality:.4f} over valid cases)")
+    try:
+        from app.llm import interpreter as _interp
+        if _interp.fallback_count:
+            print(f"  !! {_interp.fallback_count} interpretation(s) came from the "
+                  f"backup parser, not the model — this score does not prove the "
+                  f"LLM path works.")
+    except Exception:  # judge must still run without the app importable
+        pass
     print(f"Measured       {scores['total']:>6.2f} / 60   "
           "(API, performance, deployment and docs are not measurable here)")
 

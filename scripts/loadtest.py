@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
 import json
 import statistics
 import sys
@@ -31,6 +32,31 @@ def load_payloads(cases_path: Path) -> list[dict[str, Any]]:
     with open(cases_path) as f:
         data = json.load(f)
     return [case["input"] for case in data["cases"]]
+
+
+def _distinct(payloads: list[dict[str, Any]], repeat: int) -> list[dict[str, Any]]:
+    """Repeat the cases without letting the interpretation cache serve them.
+
+    Replaying identical notes measures the cache, not the service: on a warm
+    cache the same ten cases came back at p95 0.03s against 2.01s for distinct
+    ones, a ~100x overstatement. The judge sends distinct hidden cases, so each
+    repeat gets a fresh scenario_id and a marker appended to one note, which
+    changes the cache key without changing the directive being expressed.
+    """
+    out: list[dict[str, Any]] = []
+    for cycle in range(repeat):
+        for payload in payloads:
+            if cycle == 0:
+                out.append(payload)
+                continue
+            fresh = copy.deepcopy(payload)
+            fresh["scenario_id"] = f"{fresh.get('scenario_id', 'LOAD')}-r{cycle}"
+            notes = list(fresh.get("operator_notes") or [])
+            if notes:
+                notes[0] = f"{notes[0]} (load probe {cycle})"
+                fresh["operator_notes"] = notes
+            out.append(fresh)
+    return out
 
 
 async def fire_one(
@@ -64,7 +90,7 @@ async def run(base_url: str, payloads: list[dict[str, Any]], repeat: int, concur
         except httpx.HTTPError as e:
             print(f"GET /health -> FAILED ({e})")
 
-        request_payloads = payloads * repeat
+        request_payloads = _distinct(payloads, repeat)
         semaphore = asyncio.Semaphore(concurrency)
 
         async def bound_fire(payload: dict[str, Any]) -> tuple[float, int, bool]:

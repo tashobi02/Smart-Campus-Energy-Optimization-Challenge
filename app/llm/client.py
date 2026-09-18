@@ -79,21 +79,36 @@ Let me know if you need anything else!"""
 # TCP and TLS handshake on every request. Built lazily so importing this
 # module stays network-free and /health comes up inside its 60s window (5.3).
 _client: httpx.AsyncClient | None = None
+_client_loop: asyncio.AbstractEventLoop | None = None
 
 
 def _get_client() -> httpx.AsyncClient:
-    global _client
-    if _client is None:
+    """The shared client, rebuilt if the running event loop changed.
+
+    An AsyncClient binds to the loop that created it. Under uvicorn there is one
+    long-lived loop, so this returns the same client every time and the
+    connection reuse of 5.1 is preserved. A script that calls asyncio.run() more
+    than once gets a fresh loop each time, and the old client would raise
+    "RuntimeError: Event loop is closed" on its next request — which the
+    interpreter swallows as an outage and answers from the regex fallback
+    instead, silently. Keying on the loop keeps that from happening.
+    """
+    global _client, _client_loop
+    loop = asyncio.get_running_loop()
+    if _client is None or _client.is_closed or _client_loop is not loop:
         _client = httpx.AsyncClient(timeout=LLM_TIMEOUT_SECONDS)
+        _client_loop = loop
     return _client
 
 
 async def aclose() -> None:
     """Close the shared client. For app shutdown and for tests."""
-    global _client
-    if _client is not None:
+    global _client, _client_loop
+    if _client is not None and not _client.is_closed:
         await _client.aclose()
-        _client = None
+    # Clear it, or the next _get_client() hands back a closed client.
+    _client = None
+    _client_loop = None
 
 
 async def complete(

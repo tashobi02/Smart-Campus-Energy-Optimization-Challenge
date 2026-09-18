@@ -204,7 +204,8 @@ def solve_best_effort(
     note was misread. Rather than failing the request, drop the smallest number
     of interpreted directives that restores feasibility.
 
-    Returns (plan, bundle actually used, relaxation notes).
+    Returns (plan, bundle actually used, relaxations), where each relaxation
+    is {'note_index': int | None, 'reason': str}.
     """
     bundle = apply_directives(hours, battery, directives)
     solution = _solve_lp(hours, battery, bundle)
@@ -235,7 +236,11 @@ def solve_best_effort(
             _, keep, (solar_used, net, _), relaxed_bundle = best
             dropped = sorted(set(applying) - set(keep))
             notes = [
-                f"relaxed directive for note {i} to keep the schedule feasible"
+                {
+                    "note_index": i,
+                    "reason": f"the directive from note {i} could not be satisfied "
+                              f"and was relaxed to keep the schedule feasible",
+                }
                 for i in dropped
             ]
             logger.warning("dropped directives for notes %s", dropped)
@@ -245,4 +250,8 @@ def solve_best_effort(
     # empty subset, i.e. the base GridWise constraints with no directives at all.
     logger.error("base scenario infeasible; falling back to a grid-only schedule")
     base = apply_directives(hours, battery, [])
-    return _baseline(hours, battery, base), base, ["fell back to a grid-only schedule"]
+    return (
+        _baseline(hours, battery, base),
+        base,
+        [{"note_index": None, "reason": "fell back to a grid-only schedule"}],
+    )

@@ -19,6 +19,25 @@ logger = logging.getLogger(__name__)
 from app.llm.client import LLMUnavailable, complete
 
 
+# How many interpretations were served by the backup parser instead of the
+# model. Tools read this to prove the LLM was actually in the path: a green
+# score with a non-zero count is NOT evidence that the prompt works, because
+# the regex parser answers public-style notes well and hidden paraphrases badly.
+fallback_count = 0
+
+
+def reset_fallback_count() -> None:
+    global fallback_count
+    fallback_count = 0
+
+
+def _fell_back(notes, battery, reason: str):
+    global fallback_count
+    fallback_count += len(notes)
+    logger.warning("%s; using the deterministic backup parser", reason)
+    return fallback_parse(notes, battery)
+
+
 _FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
 
 
@@ -78,13 +97,11 @@ async def interpret_notes(
             SYSTEM_PROMPT, user_prompt, json_schema=RESPONSE_JSON_SCHEMA
         )
     except LLMUnavailable:
-        logger.warning("model unavailable; using the deterministic backup parser")
-        return fallback_parse(operator_notes, battery)
+        return _fell_back(operator_notes, battery, "model unavailable")
 
     entries = _as_entries(_extract_json(raw))
     if not entries:
-        logger.warning("model returned no usable JSON; using the backup parser")
-        return fallback_parse(operator_notes, battery)
+        return _fell_back(operator_notes, battery, "model returned no usable JSON")
     return entries
 
 
