@@ -20,6 +20,7 @@ from app.schemas.response import (
     DirectiveInterpretation,
     HourlyPlanEntry,
     OptimizeResponse,
+    directive_adapter,
 )
 from judge.replay import recompute_totals
 
@@ -112,7 +113,7 @@ async def optimize_energy(request: ScenarioRequest):
         # back to no_op and keep the schedule, the totals and the schema.
         try:
             interpretations: List[DirectiveInterpretation] = [
-                DirectiveInterpretation(**d) for d in directives
+                directive_adapter.validate_python(d) for d in directives
             ]
         except ValidationError:
             logger.warning(
@@ -120,7 +121,8 @@ async def optimize_energy(request: ScenarioRequest):
                 "degrading to no_op"
             )
             interpretations = [
-                DirectiveInterpretation(**d) for d in _all_no_op(len(request.operator_notes))
+                directive_adapter.validate_python(d)
+                for d in _all_no_op(len(request.operator_notes))
             ]
 
         return OptimizeResponse(
