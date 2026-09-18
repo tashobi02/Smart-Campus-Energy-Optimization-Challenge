@@ -24,8 +24,10 @@ from app.llm import cache
 
 logger = logging.getLogger(__name__)
 
+# Both speak the OpenAI chat-completions shape, so one _post covers them.
 _PROVIDER_URLS = {
     "openrouter": "https://openrouter.ai/api/v1/chat/completions",
+    "openai": "https://api.openai.com/v1/chat/completions",
 }
 
 
@@ -114,6 +116,12 @@ async def complete(
     if stub is not None:
         return stub
 
+    if LLM_PROVIDER not in _PROVIDER_URLS:
+        raise LLMUnavailable(
+            f"unknown LLM_PROVIDER {LLM_PROVIDER!r}; "
+            f"expected one of {sorted(_PROVIDER_URLS)}"
+        )
+
     key = cache.make_key("complete", LLM_MODEL, system, user, json_schema)
     cached = cache.get(key)
     if cached is not None:
@@ -171,10 +179,7 @@ async def _post(
     user: str,
     json_schema: dict | None,
 ) -> str:
-    url = _PROVIDER_URLS.get(LLM_PROVIDER)
-    if url is None:
-        raise ValueError(f"Unknown LLM_PROVIDER: {LLM_PROVIDER}")
-
+    url = _PROVIDER_URLS[LLM_PROVIDER]
     headers = {
         "Authorization": f"Bearer {LLM_API_KEY}",
         "Content-Type": "application/json",
