@@ -46,12 +46,20 @@ def build_extractor() -> Callable[[list[str], dict[str, Any]], Any]:
     async, so both shapes are accepted and neither needs a change here.
     """
     from app.llm import interpreter
+    from app.schemas.request import BatteryConfig
 
     extract_fn = interpreter.interpret_notes
     takes_battery = len(inspect.signature(extract_fn).parameters) > 1
 
     def extract(notes: list[str], battery: dict[str, Any]) -> Any:
-        result = extract_fn(notes, battery) if takes_battery else extract_fn(notes)
+        if takes_battery:
+            # interpret_notes is typed as BatteryConfig; the bank ships dicts.
+            battery_arg = (
+                battery if isinstance(battery, BatteryConfig) else BatteryConfig(**battery)
+            )
+            result = extract_fn(notes, battery_arg)
+        else:
+            result = extract_fn(notes)
         if inspect.isawaitable(result):
             result = asyncio.run(result)
         return result

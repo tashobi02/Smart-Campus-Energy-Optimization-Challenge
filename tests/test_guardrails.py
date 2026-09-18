@@ -9,7 +9,7 @@ import pytest
 
 from app.guardrails.validator import validate_directives
 from app.schemas.request import BatteryConfig
-from app.schemas.response import DirectiveInterpretation
+from app.schemas.response import directive_adapter
 
 BATTERY = BatteryConfig(
     capacity_kwh=200,
@@ -47,7 +47,7 @@ def test_output_always_validates_against_the_response_schema():
     """Whatever the model sent, the repaired record must be serialisable."""
     for raw in (None, "garbage", {}, _entry(directive_type="teleport")):
         [result] = _one(raw)
-        DirectiveInterpretation(**result)
+        directive_adapter.validate_python(result)
 
 
 def test_unknown_directive_type_becomes_no_op():

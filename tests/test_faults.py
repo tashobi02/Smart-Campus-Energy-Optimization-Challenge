@@ -96,7 +96,7 @@ def test_internal_error_does_not_leak_details(monkeypatch):
     def _boom(*_args, **_kwargs):
         raise RuntimeError(f"upstream call failed, Authorization: Bearer {secret}")
 
-    monkeypatch.setattr("app.main.solve", _boom)
+    monkeypatch.setattr("app.main.solve_best_effort", _boom)
 
     resp = client.post("/optimize-energy", json=_valid_payload())
     assert resp.status_code == 500

@@ -16,21 +16,7 @@ from app.schemas.request import BatteryConfig
 
 logger = logging.getLogger(__name__)
 
-try:  # The frozen transport seam, owned by D2.
-    from app.llm.client import LLMUnavailable, complete  # type: ignore
-except ImportError:  # pragma: no cover - until D2 lands `complete`
-    from app.llm.client import call_llm
-
-    class LLMUnavailable(RuntimeError):
-        """Raised when the model could not be reached or returned nothing."""
-
-    async def complete(
-        system: str, user: str, *, json_schema: Optional[Dict[str, Any]] = None
-    ) -> str:
-        try:
-            return await call_llm(system, user)
-        except Exception as exc:  # noqa: BLE001 - transport detail stays internal
-            raise LLMUnavailable("language model request failed") from exc
+from app.llm.client import LLMUnavailable, complete
 
 
 _FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
