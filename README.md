@@ -24,14 +24,13 @@ python3 -m venv .venv
 # Install dev + runtime deps
 pip install -r requirements-dev.txt
 
-# Secrets — `.env.example` is git-ignored as a template; recreate it locally.
-cat > .env <<'EOF'
-LLM_PROVIDER=openai
-LLM_API_KEY=sk-...
-LLM_MODEL=gpt-4.1-mini
-PORT=8000
-EOF
-# open .env in your editor and replace sk-... with your real key.
+# Secrets — copy the tracked template and fill in your key.
+cp .env.example .env
+# open .env in your editor and replace the placeholder with your real key.
+#
+# LLM_STUB_MODE=off is deliberate: it always calls the provider. With the
+# default `auto`, a missing or invalid key silently serves a canned payload,
+# and every test below would still pass while the model was never reached.
 ```
 
 `.env` is git-ignored. Never paste a key into the repo, into a PR, or
@@ -45,15 +44,15 @@ into a chat — see *Secret Safety* below.
 | `LLM_API_KEY` | Bearer key for the provider | empty (must be set) |
 | `LLM_MODEL` | Primary model | `google/gemini-2.5-flash` |
 | `LLM_FALLBACK_MODEL` | Tried once after a primary-model failure | empty |
-| `LLM_TIMEOUT_SECONDS` | Per-call timeout | `20` |
-| `LLM_RETRY_JITTER_SECONDS` | Random backoff before the retry | `0.6` |
-| `LLM_STUB_MODE` | `off` (real), `canned` (deterministic), `auto` (LLM with fallback) | `auto` |
+| `LLM_TIMEOUT_SECONDS` | Per-call timeout | `8` |
+| `LLM_RETRY_JITTER_SECONDS` | Random backoff before the retry | `0.5` |
+| `LLM_STUB_MODE` | `off` always calls the provider; `canned` always returns a fixed payload; `malformed` returns a broken one (guardrail testing); `auto` uses the provider only when `LLM_API_KEY` is set and returns the canned payload otherwise | `auto` |
 | `LLM_CACHE_ENABLED` | In-process response cache; set `0` to disable | `1` |
-| `LLM_CACHE_MAX_ENTRIES` | Cache size | `256` |
-| `SOLVER_TIMEOUT_SECONDS` | LP solver budget per request | `5` |
+| `LLM_CACHE_MAX_ENTRIES` | Cache size | `512` |
+| `SOLVER_TIMEOUT_SECONDS` | LP solver budget per request | `1` |
 | `PORT` | Uvicorn port | `8000` |
 
-Never commit values. The `.env.example` file (names only) is the contract.
+Never commit values. `.env.example` (names and placeholders only) is tracked and is the contract; `.env` is git-ignored.
 
 ## Model / Provider
 
@@ -126,7 +125,35 @@ baseline (no directives). Every step is reproducible from
 ./scripts/run_local.sh         # uvicorn --reload --port ${PORT:-8000}
 ```
 
-### Container
+### Container — pullable fallback image
+
+> **D3 ACTION REQUIRED — not yet published.** The rubric awards 4 of the 10
+> deployment points for an image the judges can *pull* at an exact tag or
+> digest, plus a reachable base URL. Neither exists yet. Fill both in below;
+> everything else in this section is verified working.
+
+```bash
+# TODO(D3): publish and replace the placeholder with the real digest
+docker pull ghcr.io/<org>/gridwise@sha256:<digest>
+docker run --rm -p 8000:8000 \
+    -e LLM_PROVIDER=openai \
+    -e LLM_API_KEY=$LLM_API_KEY \
+    -e LLM_MODEL=gpt-4.1-mini \
+    -e LLM_STUB_MODE=off \
+    ghcr.io/<org>/gridwise@sha256:<digest>
+curl -s localhost:8000/health    # {"status":"ok"}
+```
+
+Deployed base URL: **TODO(D3)** — must answer `GET /health` and
+`POST /optimize-energy` with no login wall, VPN or manual approval.
+
+Verified locally on this image: 575 MB, runs as non-root `appuser`, cold start
+to `/health` in ~1s, `HEALTHCHECK` reports `healthy`, and no `.env`, `Docs/` or
+key material is present in the filesystem, the env or `docker history`.
+
+### Container — build from source
+
+
 
 ```bash
 docker build -t gridwise:sha-$(git rev-parse --short HEAD) .

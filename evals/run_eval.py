@@ -120,8 +120,18 @@ def report(results: list[dict[str, Any]], verbose: bool) -> bool:
     total = len(results)
     rate = exact / total if total else 0.0
 
+    # A score built on the regex fallback says nothing about the prompt, so it
+    # can never be a PASS however high it is.
+    from app.llm import interpreter as _interp
+    fell_back = _interp.fallback_count
+    clean = fell_back == 0
     print(f"\nExact match  {exact}/{total}  {rate:.1%}   "
-          f"(gate {GATE:.0%})  {'PASS' if rate >= GATE else 'FAIL'}")
+          f"(gate {GATE:.0%})  {'PASS' if rate >= GATE and clean else 'FAIL'}")
+    if not clean:
+        print(f"  !! {fell_back} of {total} answers came from the deterministic "
+              f"backup parser, not the model.")
+        print("  !! This score does NOT measure the prompt. Check LLM_API_KEY, "
+              "LLM_MODEL and LLM_STUB_MODE, then re-run.")
 
     _breakdown("By convention", results, lambda r: r["entry"]["conventions"])
     _breakdown(
@@ -192,6 +202,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(f"Scoring {len(entries)} paraphrases through app.llm.interpreter\n")
+    from app.llm import interpreter as _interp
+    _interp.reset_fallback_count()
     return 0 if report(run(entries, args.verbose), args.verbose) else 1
 
 

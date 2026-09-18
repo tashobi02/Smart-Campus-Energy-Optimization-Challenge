@@ -17,6 +17,32 @@ class BatteryConfig(BaseModel):
     max_charge_kwh_per_hour: float = Field(..., ge=0)
     max_discharge_kwh_per_hour: float = Field(..., ge=0)
 
+    @model_validator(mode="after")
+    def _bounds_must_be_satisfiable(self) -> "BatteryConfig":
+        """Reject battery states no schedule could ever satisfy.
+
+        Problem Statement 9.2 requires
+        minimum_energy_kwh <= battery_energy_after_kwh <= capacity_kwh every
+        hour, and 9.6 pins the final energy to initial_energy_kwh. If the
+        reserve sits above capacity, or the starting charge is outside the
+        legal band, no valid plan exists and any schedule we returned would
+        break 9.2 in all 24 hours. Refuse the request instead of answering with
+        one we know is invalid.
+        """
+        if self.minimum_energy_kwh > self.capacity_kwh:
+            raise ValueError(
+                "minimum_energy_kwh must not exceed capacity_kwh"
+            )
+        if self.initial_energy_kwh > self.capacity_kwh:
+            raise ValueError(
+                "initial_energy_kwh must not exceed capacity_kwh"
+            )
+        if self.initial_energy_kwh < self.minimum_energy_kwh:
+            raise ValueError(
+                "initial_energy_kwh must not be below minimum_energy_kwh"
+            )
+        return self
+
 
 class ScenarioRequest(BaseModel):
     scenario_id: str

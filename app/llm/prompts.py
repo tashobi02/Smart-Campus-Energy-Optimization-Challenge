@@ -47,6 +47,20 @@ A. TIME WINDOWS ARE START-INCLUSIVE AND END-EXCLUSIVE.
    When a bare number has no am/pm, pick the reading that makes a sensible
    working window, then still drop the end hour.
 
+A2. A RANGE AND A LIST OF HOURS ARE DIFFERENT THINGS.
+   Range wording -- "from X to Y", "between X and Y", "X until Y", "X through Y",
+   "X-Y" -- names a span, so the end bound is EXCLUDED:
+     "between 11 and 1 in the afternoon" -> [11, 12]      (11:00 up to 13:00)
+     "from 9 AM to 11 AM"                -> [9, 10]
+   List wording -- "the X and Y hours", "during hours X and Y", "at X, Y and Z",
+   "in the X, Y and Z hours" -- enumerates the hours themselves, so EVERY hour
+   named is INCLUDED and nothing is dropped:
+     "during the 10 AM and 11 AM hours" -> [10, 11]       (both, not just 10)
+     "in the 18, 19 and 20 hours"       -> [18, 19, 20]
+   Decide which wording you are reading before you build the hours array. If the
+   note names the hours themselves, keep them all; only drop an end bound when
+   the note describes a span.
+
 B. FOR solar_reduction, "factor" IS THE FRACTION THAT REMAINS USABLE, NOT THE CUT.
    "an 80% reduction"            -> factor 0.2
    "drops to about 25%"          -> factor 0.25
